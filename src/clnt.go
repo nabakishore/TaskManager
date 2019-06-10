@@ -17,6 +17,8 @@ func Usage() {
 	fmt.Println("\t[list] : List tasks")
 	fmt.Println("\t[status <name>] : Get status")
 	fmt.Println("\t[stop <name>] : Stop a task")
+	fmt.Println("\t[pause <name>] : Pause a task")
+	fmt.Println("\t[resume <name>] : Resume a paused task")
 	fmt.Println("\t[exit] : exit Task Engine")
 }
 
@@ -61,6 +63,14 @@ func main() {
 			var name string
 			fmt.Scanf("%s", &name)
 			e.StopTask(name)
+		case "pause":
+			var name string
+			fmt.Scanf("%s", &name)
+			e.PauseTask(name)
+		case "resume":
+			var name string
+			fmt.Scanf("%s", &name)
+			e.ResumeTask(name)
 		case "exit":
 			e.Exit()
 			fmt.Println("exit")

@@ -2,13 +2,14 @@ package task
 
 import (
 	"fmt"
-	"time"
+	"sync"
 )
 
 type TaskInterface interface {
 	TRunning() bool
 	TRun()
 	TPause()
+	TResume()
 	TRestart()
 	TStatus()
 	TExit()
@@ -27,32 +28,82 @@ type TaskStatus struct {
 	TaskStarted bool
 	TaskExit bool
 	TaskExited bool
+	TaskPause bool
+	TaskPaused bool
 }
 
 type Task struct {
+	sync.Mutex
         TaskId string
         TaskName string
         Resource TaskResources
         Status TaskStatus
+	PausedCond *sync.Cond
+	ResumeCond *sync.Cond
+	ExitCond *sync.Cond
 }
 
-func (S *Task) TRinning() bool {
+func (S *Task) TRunning() bool {
+	S.Lock()
 	if S.Status.TaskStarted && !S.Status.TaskExited {
+		S.Unlock()
 		return true
 	}
+	S.Unlock()
 	return false
 } 
 
 func (S *Task) TRun() {
 	fmt.Println("Task Run")
+	S.Lock()
+	S.Status.TaskStarted = true
+	S.Unlock()
+
+	for {
+		S.Lock()
+		if S.Status.TaskExit {
+			S.Unlock()
+			break
+		}
+		if S.Status.TaskPause {
+			S.PausedCond.Broadcast()
+			S.ResumeCond.Wait()
+			S.Status.TaskPaused = false
+		}
+		S.Status.TaskLoopCount++
+		S.Unlock()
+
+		// Do something
+
+	}
+
+	S.Lock()
+	S.Status.TaskExited = true
+	S.ExitCond.Broadcast()
+	S.Unlock()
 }
 
 func (S *Task) TPause() {
+	S.Lock()
+	S.Status.TaskPause = true
+	S.PausedCond.Wait()
+	S.Status.TaskPaused = true
+	S.Unlock()
 	fmt.Println("Task Pause")
+}
+
+func (S *Task) TResume() {
+	S.Lock()
+	S.Status.TaskPause = false
+	S.ResumeCond.Broadcast()
+	S.Unlock()
+	fmt.Println("Task Resume")
 }
 
 func (S *Task) TRestart() {
 	fmt.Println("Task Retart")
+	S.TExit()
+	S.TRun()
 }
 
 func (S *Task) TStatus() {
@@ -60,15 +111,27 @@ func (S *Task) TStatus() {
 }
 
 func (S *Task) TExit() {
+	S.Lock()
 	S.Status.TaskExit = true
-	for ; S.Status.TaskStarted && S.Status.TaskExited != true ; {
-		time.Sleep(5 * time.Second)
-	}
+	S.ResumeCond.Broadcast()
+	S.ExitCond.Wait()
+	S.Status.TaskStarted = false
+	S.Status.TaskExit = false
+	S.Status.TaskExited = false
+	S.Status.TaskPause = false
+	S.Status.TaskPaused = false
+	S.Unlock()
+
 }
 
 func NewTask(name string) *Task {
-	return &Task {
+	t := &Task {
 		TaskId: name,
 		TaskName: name,
 	}
+	t.PausedCond = sync.NewCond(t)
+	t.ResumeCond = sync.NewCond(t)
+	t.ExitCond = sync.NewCond(t)
+
+	return t
 }

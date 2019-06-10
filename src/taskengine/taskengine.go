@@ -31,7 +31,9 @@ func NewTaskEngine(name string, maxtask int) (*TaskEngine, error) {
 // Exit Tasks in thas engine
 func (engine *TaskEngine) Exit() {
         for _, el := range engine.Tasks {
-                el.TExit()
+		if el.TRunning() {
+	                el.TExit()
+		}
         }
 }
 
@@ -83,3 +85,18 @@ func (engine *TaskEngine) ListTask() {
         }
 }
 
+// Pause task
+func (engine *TaskEngine) PauseTask(name string) error {
+	el := engine.Tasks[name]
+	var ti task.TaskInterface = el
+	ti.TPause()
+	return nil
+}
+
+// Resume task
+func (engine *TaskEngine) ResumeTask(name string) error {
+	el := engine.Tasks[name]
+	var ti task.TaskInterface = el
+	ti.TResume()
+	return nil
+}
