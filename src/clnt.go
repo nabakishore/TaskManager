@@ -26,7 +26,6 @@ func main() {
 	var s string
 	var e *taskengine.TaskEngine
 
-
 	for ; s != "exit" ; {
 		fmt.Print(">")
 
@@ -44,35 +43,56 @@ func main() {
 			fmt.Scanf("%s", &taskname)
 			t := sampletask.NewSampleTask(taskname)
 			S = t
-			e.AddTask(taskname, S)
+			if e != nil {
+				e.AddTask(taskname, S)
+			}
 		case "deletetask":
 			var taskname string
 			fmt.Scanf("%s", &taskname)
-			e.RemoveTask(taskname)
+			if e != nil {
+				e.RemoveTask(taskname)
+			}
 		case "runtask":
 			var name string
 			fmt.Scanf("%s", &name)
-			e.RunTask(name)
+			if e != nil {
+				e.RunTask(name)
+			}
 		case "list":
-			e.ListTask()
+			if e != nil {
+				e.ListTask()
+			}
 		case "status":
 			var name string
 			fmt.Scanf("%s", &name)
-			e.TaskStatus(name)
+			if e != nil {
+				err := e.TaskStatus(name)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
 		case "stop":
 			var name string
 			fmt.Scanf("%s", &name)
-			e.StopTask(name)
+			if e != nil {
+				e.StopTask(name)
+			}
 		case "pause":
 			var name string
 			fmt.Scanf("%s", &name)
-			e.PauseTask(name)
+			if e != nil {
+				e.PauseTask(name)
+			}
 		case "resume":
 			var name string
 			fmt.Scanf("%s", &name)
-			e.ResumeTask(name)
+			if e != nil {
+				e.ResumeTask(name)
+			}
 		case "exit":
-			e.Exit()
+			if e != nil {
+				e.Exit()
+			}
 			fmt.Println("exit")
 		default:
 			fmt.Println("Invalid command")
