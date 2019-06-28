@@ -6,6 +6,7 @@ import (
 	"time"
 	"sync"
 	"../task"
+	"../status"
 )
 
 // Sample Task definitions
@@ -21,11 +22,33 @@ func (S *SampleTask) TRunning() bool {
         return false
 }
 
+func updateStatus(S *SampleTask) error {
+	var conf status.StatusConf
+	conf.WrStatus.TaskState = S.Status.TaskState
+        conf.WrStatus.TaskLoopCount = S.Status.TaskLoopCount
+	S.Conf.Update(conf)
+
+	return nil
+}
+
+func getStatus(S *SampleTask) error {
+	status := S.Conf.Fetch()
+	S.Status.TaskState = status.TaskState
+	S.Status.TaskLoopCount = status.TaskLoopCount
+
+	return nil
+}
+
 func (S *SampleTask) TRun() {
+	// Restart from a previous state if exist
+	getStatus(S)
+
 	S.Lock()
         S.Status.TaskStarted = true
 	S.Unlock()
         for {
+		// Update task status
+		updateStatus(S)
 
 		S.Lock()
 		if S.Status.TaskExit {
@@ -98,9 +121,14 @@ func (S *SampleTask) TExit() {
 	S.Status.TaskPause = false
 	S.Status.TaskPaused = false
 	S.Unlock()
+	if S.Conf != nil {
+		S.Conf.Fetch()
+	}
 }
 
 func NewSampleTask(name string) *SampleTask {
+	var S status.StatusInterface
+
         t := &SampleTask {
                 TaskId: name,
                 TaskName: name,
@@ -109,6 +137,9 @@ func NewSampleTask(name string) *SampleTask {
 	t.PausedCond = sync.NewCond(t)
 	t.ResumeCond = sync.NewCond(t)
 	t.ExitCond = sync.NewCond(t)
+	s := status.NewStatusConf(name + ".json")
+	S = s
+	t.Conf = S
 	return t
 }
 

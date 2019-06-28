@@ -3,6 +3,7 @@ package task
 import (
 	"fmt"
 	"sync"
+	"../status"
 )
 
 type TaskInterface interface {
@@ -41,6 +42,7 @@ type Task struct {
 	PausedCond *sync.Cond
 	ResumeCond *sync.Cond
 	ExitCond *sync.Cond
+	Conf status.StatusInterface
 }
 
 func (S *Task) TRunning() bool {
@@ -52,6 +54,14 @@ func (S *Task) TRunning() bool {
 	S.Unlock()
 	return false
 } 
+
+func updateStatus(S *Task) error {
+	var conf status.StatusConf
+	conf.WrStatus.TaskState = S.Status.TaskState
+	conf.WrStatus.TaskLoopCount = S.Status.TaskLoopCount
+	S.Conf.Update(conf)
+	return nil
+}
 
 func (S *Task) TRun() {
 	fmt.Println("Task Run")
@@ -132,6 +142,7 @@ func NewTask(name string) *Task {
 	t.PausedCond = sync.NewCond(t)
 	t.ResumeCond = sync.NewCond(t)
 	t.ExitCond = sync.NewCond(t)
-
+	conf := status.NewStatusConf(name + ".json")
+	t.Conf = conf
 	return t
 }
